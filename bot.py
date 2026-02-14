@@ -11,10 +11,8 @@ if not TOKEN:
     print("ERROR: DISCORD_TOKEN not set!")
     exit(1)
 
-# Default target languages
-TARGET_LANGUAGES = ["en", "fr", "es"]  # You can add/remove any languages
+TARGET_LANGUAGES = ["en", "fr", "es"]  # Add any language codes you want
 
-# Initialize Discord bot
 intents = discord.Intents.default()
 intents.message_content = True
 intents.messages = True
@@ -22,7 +20,6 @@ intents.guilds = True
 
 bot = commands.Bot(command_prefix="!", intents=intents)
 
-# Initialize translator
 translator = Translator()
 
 # -----------------------------
@@ -37,7 +34,7 @@ def translate_text(text, target_lang):
         return None
 
 # -----------------------------
-# Discord events
+# Events
 # -----------------------------
 @bot.event
 async def on_ready():
@@ -66,11 +63,10 @@ async def on_message(message):
     await bot.process_commands(message)
 
 # -----------------------------
-# Commands to manage languages
+# Commands
 # -----------------------------
 @bot.command()
 async def addlang(ctx, code):
-    """Add a language code to translate to"""
     if code not in TARGET_LANGUAGES:
         TARGET_LANGUAGES.append(code)
         await ctx.send(f"✅ Added language `{code}`")
@@ -79,7 +75,6 @@ async def addlang(ctx, code):
 
 @bot.command()
 async def removelang(ctx, code):
-    """Remove a language code from the list"""
     if code in TARGET_LANGUAGES:
         TARGET_LANGUAGES.remove(code)
         await ctx.send(f"✅ Removed language `{code}`")
@@ -88,7 +83,6 @@ async def removelang(ctx, code):
 
 @bot.command()
 async def testapi(ctx):
-    """Test translation functionality"""
     translated = translate_text("hello", "fr")
     if translated:
         await ctx.send(f"API Response: {translated}")
@@ -96,10 +90,8 @@ async def testapi(ctx):
         await ctx.send("Error: Translation failed.")
 
 # -----------------------------
-# Run the bot
+# Run bot
 # -----------------------------
 bot.run(TOKEN)
-
-
 
 
