@@ -18,9 +18,9 @@ COPY bot/requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 
 # Install LibreTranslate
-RUN curl -LO https://github.com/LibreTranslate/LibreTranslate/releases/download/4.12.0/libretranslate-4.12.0.zip \
-    && unzip libretranslate-4.12.0.zip -d /libretranslate \
-    && rm libretranslate-4.12.0.zip
+RUN curl -LO https://github.com/LibreTranslate/LibreTranslate/releases/latest/download/libretranslate.zip \
+    && unzip libretranslate.zip -d /libretranslate \
+    && rm libretranslate.zip
 
 # Copy bot code
 COPY bot/ ./bot
@@ -32,4 +32,5 @@ EXPOSE 5000
 
 # Start LibreTranslate and bot
 CMD ["sh", "-c", "java -jar /libretranslate/libretranslate.jar & python bot.py"]
+
 
