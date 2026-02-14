@@ -1,14 +1,16 @@
-FROM python:3.13-slim
+FROM openjdk:17-slim
 
+# Install Python pip + utilities
 RUN apt-get update && apt-get install -y \
+    python3-pip \
     curl \
     unzip \
-    openjdk-17-jdk-headless \
     && rm -rf /var/lib/apt/lists/*
 
 COPY bot/requirements.txt .
-RUN pip install --no-cache-dir -r requirements.txt
+RUN pip3 install --no-cache-dir -r requirements.txt
 
+# Install LibreTranslate
 RUN curl -LO https://github.com/LibreTranslate/LibreTranslate/releases/download/4.12.0/libretranslate-4.12.0.zip \
     && unzip libretranslate-4.12.0.zip -d /libretranslate \
     && rm libretranslate-4.12.0.zip
@@ -19,4 +21,5 @@ WORKDIR /bot
 EXPOSE 8080
 EXPOSE 5000
 
-CMD ["sh", "-c", "java -jar /libretranslate/libretranslate.jar & python bot.py"]
+CMD ["sh", "-c", "java -jar /libretranslate/libretranslate.jar & python3 bot.py"]
+
