@@ -5,29 +5,26 @@ import os
 from flask import Flask
 from threading import Thread
 
-# --- Keep-alive server for cloud hosts ---
+# --- Keep-alive server for Replit ---
 app = Flask("")
 
 @app.route("/")
 def home():
     return "Bot is alive!"
 
-# Start Flask server in a thread (necessary for Replit/Render)
+# Start Flask server in a separate thread
 Thread(target=lambda: app.run(host="0.0.0.0", port=8080)).start()
 
 # --- Config ---
-TARGET_LANGUAGES = ["en", "fr"]  # Default target languages
-TOKEN = os.getenv("DISCORD_TOKEN")  # Set this in Replit/Render environment
+TARGET_LANGUAGES = ["en", "fr"]
+TOKEN = os.getenv("DISCORD_TOKEN")  # Set this in Replit environment
 
 if not TOKEN:
     print("ERROR: DISCORD_TOKEN environment variable not found!")
     exit(1)
 
-# Public LibreTranslate APIs
-LIBRE_ENDPOINTS = [
-    "https://libretranslate.com/translate",
-    "https://translate.argosopentech.com/translate",
-]
+# Public LibreTranslate API (works from Replit)
+LIBRE_URL = "https://libretranslate.com/translate"
 
 # --- Discord Intents ---
 intents = discord.Intents.default()
@@ -37,22 +34,21 @@ intents.guilds = True
 
 bot = commands.Bot(command_prefix="!", intents=intents)
 
-# --- Helper function with fallback ---
+# --- Helper function ---
 def translate_text(text, target_lang):
-    for url in LIBRE_ENDPOINTS:
-        try:
-            payload = {
-                "q": text,
-                "source": "auto",
-                "target": target_lang,
-                "format": "text"
-            }
-            response = requests.post(url, data=payload, timeout=10)
-            response.raise_for_status()
-            return response.json().get("translatedText")
-        except Exception as e:
-            print(f"Translation error at {url} for '{target_lang}': {e}")
-    return None
+    try:
+        payload = {
+            "q": text,
+            "source": "auto",
+            "target": target_lang,
+            "format": "text"
+        }
+        response = requests.post(LIBRE_URL, data=payload, timeout=10)
+        response.raise_for_status()
+        return response.json().get("translatedText")
+    except Exception as e:
+        print(f"Translation error for '{target_lang}': {e}")
+        return None
 
 # --- Discord events ---
 @bot.event
@@ -106,8 +102,7 @@ async def testapi(ctx):
     if translated:
         await ctx.send(f"API Response: {translated}")
     else:
-        await ctx.send("Error: Could not reach any translation API.")
+        await ctx.send("Error: Could not reach LibreTranslate service.")
 
 # --- Run bot ---
 bot.run(TOKEN)
-
