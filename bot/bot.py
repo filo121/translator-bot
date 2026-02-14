@@ -22,12 +22,8 @@ if not TOKEN:
     print("ERROR: DISCORD_TOKEN environment variable not found!")
     exit(1)
 
-# Multiple public LibreTranslate APIs (primary + fallbacks)
-LIBRE_ENDPOINTS = [
-    "https://libretranslate.com/translate",
-    "https://translate.argosopentech.com/translate",
-    "https://translate.api2.argosopentech.com/translate"
-]
+# Internal LibreTranslate service running in Docker
+LIBRE_URL = "http://libretranslate:5000/translate"
 
 # --- Discord Intents ---
 intents = discord.Intents.default()
@@ -37,22 +33,21 @@ intents.guilds = True
 
 bot = commands.Bot(command_prefix="!", intents=intents)
 
-# --- Helper function with multiple fallbacks ---
+# --- Helper function ---
 def translate_text(text, target_lang):
-    for url in LIBRE_ENDPOINTS:
-        try:
-            payload = {
-                "q": text,
-                "source": "auto",
-                "target": target_lang,
-                "format": "text"
-            }
-            response = requests.post(url, data=payload, timeout=10)
-            response.raise_for_status()
-            return response.json().get("translatedText")
-        except Exception as e:
-            print(f"Translation error at {url} for '{target_lang}': {e}")
-    return None
+    try:
+        payload = {
+            "q": text,
+            "source": "auto",
+            "target": target_lang,
+            "format": "text"
+        }
+        response = requests.post(LIBRE_URL, data=payload, timeout=10)
+        response.raise_for_status()
+        return response.json().get("translatedText")
+    except Exception as e:
+        print(f"Translation error for '{target_lang}': {e}")
+        return None
 
 # --- Discord events ---
 @bot.event
@@ -107,8 +102,7 @@ async def testapi(ctx):
     if translated:
         await ctx.send(f"API Response: {translated}")
     else:
-        await ctx.send("Error: Could not reach any translation API.")
+        await ctx.send("Error: Could not reach LibreTranslate service.")
 
 # --- Run bot ---
 bot.run(TOKEN)
-
