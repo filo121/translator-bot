@@ -3,7 +3,7 @@ FROM python:3.13-slim
 RUN apt-get update && apt-get install -y \
     curl \
     unzip \
-    openjdk-17-jdk \
+    openjdk-17-jdk-headless \
     && rm -rf /var/lib/apt/lists/*
 
 COPY bot/requirements.txt .
@@ -20,3 +20,4 @@ EXPOSE 8080
 EXPOSE 5000
 
 CMD ["sh", "-c", "java -jar /libretranslate/libretranslate.jar & python bot.py"]
+
