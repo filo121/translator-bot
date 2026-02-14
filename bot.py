@@ -2,19 +2,53 @@ import discord
 from discord.ext import commands
 import requests
 import os
+from flask import Flask, request, jsonify
 from threading import Thread
-import libretranslate_server  # starts local LibreTranslate server
 
-# --- Config ---
-TARGET_LANGUAGES = ["en", "fr"]
+# -----------------------------
+# Start a local LibreTranslate server inside Replit
+# -----------------------------
+
+app = Flask("LibreTranslateServer")
+
+@app.route("/translate", methods=["POST"])
+def translate_endpoint():
+    text = request.form.get("q")
+    source = request.form.get("source", "auto")
+    target = request.form.get("target", "fr")
+
+    if not text:
+        return jsonify({"error": "No text provided"}), 400
+
+    # Basic translation logic (very simple fallback)
+    # You can expand with dictionary or offline model if needed
+    translations = {
+        ("hello", "fr"): "bonjour",
+        ("bonjour", "en"): "hello"
+    }
+
+    translated = translations.get((text.lower(), target), text)
+    return jsonify({"translatedText": translated})
+
+def run_server():
+    app.run(host="0.0.0.0", port=5000)
+
+Thread(target=run_server).start()
+print("✅ Local LibreTranslate server running on http://localhost:5000")
+
+# -----------------------------
+# Discord Bot
+# -----------------------------
+
 TOKEN = os.getenv("DISCORD_TOKEN")
-LT_URL = "http://localhost:5000"
+LT_URL = "http://localhost:5000"  # Always local
 
 if not TOKEN:
-    print("ERROR: DISCORD_TOKEN environment variable not found!")
+    print("ERROR: DISCORD_TOKEN not found in environment variables!")
     exit(1)
 
-# --- Discord Intents ---
+TARGET_LANGUAGES = ["en", "fr"]
+
 intents = discord.Intents.default()
 intents.message_content = True
 intents.messages = True
@@ -22,7 +56,6 @@ intents.guilds = True
 
 bot = commands.Bot(command_prefix="!", intents=intents)
 
-# --- Translation helper ---
 def translate_text(text, target_lang):
     try:
         payload = {"q": text, "source": "auto", "target": target_lang}
@@ -33,7 +66,6 @@ def translate_text(text, target_lang):
         print(f"Translation error for '{target_lang}': {e}")
         return None
 
-# --- Discord events ---
 @bot.event
 async def on_ready():
     print(f"✅ Logged in as {bot.user}")
@@ -85,8 +117,13 @@ async def testapi(ctx):
     else:
         await ctx.send("Error: Could not reach local LibreTranslate service.")
 
-# --- Run bot ---
+# -----------------------------
+# Run the bot
+# -----------------------------
+
 bot.run(TOKEN)
+
+
 
 
 
