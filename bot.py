@@ -12,7 +12,7 @@ if not TOKEN:
     exit(1)
 
 # Default target languages
-TARGET_LANGUAGES = ["en", "fr"]
+TARGET_LANGUAGES = ["en", "fr", "es"]  # You can add/remove any languages
 
 # Initialize Discord bot
 intents = discord.Intents.default()
@@ -70,6 +70,7 @@ async def on_message(message):
 # -----------------------------
 @bot.command()
 async def addlang(ctx, code):
+    """Add a language code to translate to"""
     if code not in TARGET_LANGUAGES:
         TARGET_LANGUAGES.append(code)
         await ctx.send(f"✅ Added language `{code}`")
@@ -78,6 +79,7 @@ async def addlang(ctx, code):
 
 @bot.command()
 async def removelang(ctx, code):
+    """Remove a language code from the list"""
     if code in TARGET_LANGUAGES:
         TARGET_LANGUAGES.remove(code)
         await ctx.send(f"✅ Removed language `{code}`")
@@ -86,6 +88,7 @@ async def removelang(ctx, code):
 
 @bot.command()
 async def testapi(ctx):
+    """Test translation functionality"""
     translated = translate_text("hello", "fr")
     if translated:
         await ctx.send(f"API Response: {translated}")
