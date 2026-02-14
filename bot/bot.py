@@ -23,7 +23,7 @@ if not TOKEN:
     exit(1)
 
 # Public LibreTranslate API
-LIBRE_URL = "https://translate.mentality.rip/translate"
+LIBRE_URL = "https://libretranslate.com/translate"
 
 # --- Discord Intents ---
 intents = discord.Intents.default()
@@ -116,4 +116,5 @@ async def testapi(ctx):
 
 # --- Run bot ---
 bot.run(TOKEN)
+
 
