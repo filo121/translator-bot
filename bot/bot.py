@@ -27,7 +27,7 @@ LIBRE_URL = "https://translate.mentality.rip/translate"
 
 # --- Discord Intents ---
 intents = discord.Intents.default()
-intents.message_content = True  # Very important to read messages
+intents.message_content = True  # MUST be True to read messages
 intents.messages = True
 intents.guilds = True
 
@@ -45,8 +45,6 @@ def translate_text(text, target_lang):
         response = requests.post(LIBRE_URL, data=payload, timeout=10)
         response.raise_for_status()
         translated = response.json().get("translatedText")
-        if not translated:
-            print(f"⚠ No translation returned for '{text}' -> '{target_lang}'")
         return translated
     except Exception as e:
         print(f"Translation error for '{target_lang}': {e}")
@@ -97,8 +95,25 @@ async def removelang(ctx, code):
     else:
         await ctx.send(f"⚠ Language `{code}` not found.")
 
+# --- TEMPORARY: Test translation API ---
+@bot.command()
+async def testapi(ctx):
+    """Test translation API directly from Discord"""
+    try:
+        r = requests.post(
+            LIBRE_URL,
+            data={
+                "q": "hello",
+                "source": "auto",
+                "target": "fr",
+                "format": "text"
+            },
+            timeout=10
+        )
+        await ctx.send(f"API Response: {r.json()}")
+    except Exception as e:
+        await ctx.send(f"Error calling API: {e}")
+
 # --- Run bot ---
 bot.run(TOKEN)
-
-
 
