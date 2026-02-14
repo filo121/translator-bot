@@ -1,29 +1,32 @@
 FROM eclipse-temurin:17-jdk
 
-# Install Python + utilities
+# Install tools
 RUN apt-get update && apt-get install -y \
+    git \
     python3 \
     python3-venv \
     python3-pip \
     curl \
-    unzip \
+    build-essential \
     && rm -rf /var/lib/apt/lists/*
 
-# Create virtual environment
+# Create Python virtual environment
 RUN python3 -m venv /opt/venv
 ENV PATH="/opt/venv/bin:$PATH"
 
-# Copy Python dependencies and install in venv
+# Install Python dependencies
 COPY bot/requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 
-# Install LibreTranslate
-RUN curl -LO https://github.com/LibreTranslate/LibreTranslate/releases/latest/download/libretranslate.zip \
-    && unzip libretranslate.zip -d /libretranslate \
-    && rm libretranslate.zip
+# Clone LibreTranslate
+RUN git clone https://github.com/LibreTranslate/LibreTranslate.git /libretranslate-source
 
-# Copy bot code
-COPY bot/ ./bot
+# Build LibreTranslate
+WORKDIR /libretranslate-source
+RUN ./build.sh
+
+# Copy bot
+COPY bot/ /bot
 WORKDIR /bot
 
 # Expose ports
@@ -31,6 +34,7 @@ EXPOSE 8080
 EXPOSE 5000
 
 # Start LibreTranslate and bot
-CMD ["sh", "-c", "java -jar /libretranslate/libretranslate.jar & python bot.py"]
+CMD ["sh", "-c", "java -jar /libretranslate-source/libretranslate.jar & python bot.py"]
+
 
 
