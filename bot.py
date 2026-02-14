@@ -1,0 +1,113 @@
+import discord
+from discord.ext import commands
+import requests
+import os
+from flask import Flask
+from threading import Thread
+
+# --- Keep-alive server for cloud hosts ---
+app = Flask("")
+
+@app.route("/")
+def home():
+    return "Bot is alive!"
+
+# Start Flask server in a thread (necessary for Replit/Render)
+Thread(target=lambda: app.run(host="0.0.0.0", port=8080)).start()
+
+# --- Config ---
+TARGET_LANGUAGES = ["en", "fr"]  # Default target languages
+TOKEN = os.getenv("DISCORD_TOKEN")  # Set this in Replit/Render environment
+
+if not TOKEN:
+    print("ERROR: DISCORD_TOKEN environment variable not found!")
+    exit(1)
+
+# Public LibreTranslate APIs
+LIBRE_ENDPOINTS = [
+    "https://libretranslate.com/translate",
+    "https://translate.argosopentech.com/translate",
+]
+
+# --- Discord Intents ---
+intents = discord.Intents.default()
+intents.message_content = True
+intents.messages = True
+intents.guilds = True
+
+bot = commands.Bot(command_prefix="!", intents=intents)
+
+# --- Helper function with fallback ---
+def translate_text(text, target_lang):
+    for url in LIBRE_ENDPOINTS:
+        try:
+            payload = {
+                "q": text,
+                "source": "auto",
+                "target": target_lang,
+                "format": "text"
+            }
+            response = requests.post(url, data=payload, timeout=10)
+            response.raise_for_status()
+            return response.json().get("translatedText")
+        except Exception as e:
+            print(f"Translation error at {url} for '{target_lang}': {e}")
+    return None
+
+# --- Discord events ---
+@bot.event
+async def on_ready():
+    print(f"✅ Logged in as {bot.user}")
+    print("Bot is ready to translate messages...")
+
+@bot.event
+async def on_message(message):
+    if message.author.bot:
+        return
+
+    translations = []
+
+    for lang in TARGET_LANGUAGES:
+        translated = translate_text(message.content, lang)
+        if translated and translated.lower() != message.content.lower():
+            translations.append(f"🌐 ({lang}) {translated}")
+
+    if translations:
+        embed = discord.Embed(
+            title="Translations",
+            description="\n".join(translations),
+            color=discord.Color.blue()
+        )
+        await message.channel.send(embed=embed)
+
+    await bot.process_commands(message)
+
+# --- Commands to add/remove languages dynamically ---
+@bot.command()
+async def addlang(ctx, code):
+    if code not in TARGET_LANGUAGES:
+        TARGET_LANGUAGES.append(code)
+        await ctx.send(f"✅ Added language `{code}`")
+    else:
+        await ctx.send(f"⚠ Language `{code}` already exists.")
+
+@bot.command()
+async def removelang(ctx, code):
+    if code in TARGET_LANGUAGES:
+        TARGET_LANGUAGES.remove(code)
+        await ctx.send(f"✅ Removed language `{code}`")
+    else:
+        await ctx.send(f"⚠ Language `{code}` not found.")
+
+# --- TEMPORARY: Test translation API ---
+@bot.command()
+async def testapi(ctx):
+    translated = translate_text("hello", "fr")
+    if translated:
+        await ctx.send(f"API Response: {translated}")
+    else:
+        await ctx.send("Error: Could not reach any translation API.")
+
+# --- Run bot ---
+bot.run(TOKEN)
+
