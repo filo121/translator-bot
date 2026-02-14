@@ -15,14 +15,14 @@ def home():
 Thread(target=lambda: app.run(host="0.0.0.0", port=8080)).start()
 
 # --- Config ---
-TARGET_LANGUAGES = ["en", "fr"]  # default
+TARGET_LANGUAGES = ["en", "fr"]  # default languages
 TOKEN = os.getenv("DISCORD_TOKEN")
 
 if not TOKEN:
     print("ERROR: DISCORD_TOKEN not found!")
     exit()
 
-# Call self-hosted LibreTranslate
+# Self-hosted LibreTranslate URL
 LIBRE_URL = "http://localhost:5000/translate"
 
 # --- Discord Intents ---
@@ -96,3 +96,4 @@ async def removelang(ctx, code):
 
 # --- Run Bot ---
 bot.run(TOKEN)
+
