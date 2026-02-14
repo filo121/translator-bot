@@ -5,7 +5,7 @@ import os
 from flask import Flask
 from threading import Thread
 
-# Keep-alive server
+# --- Keep-alive server for Railway ---
 app = Flask("")
 
 @app.route("/")
@@ -14,24 +14,26 @@ def home():
 
 Thread(target=lambda: app.run(host="0.0.0.0", port=8080)).start()
 
-# Config
-TARGET_LANGUAGES = ["en", "fr"]
+# --- Config ---
+TARGET_LANGUAGES = ["en", "fr"]  # default translation languages
 TOKEN = os.getenv("DISCORD_TOKEN")
 
 if not TOKEN:
-    print("ERROR: DISCORD_TOKEN not found!")
-    exit()
+    print("ERROR: DISCORD_TOKEN environment variable not found!")
+    exit(1)
 
+# Public LibreTranslate API
 LIBRE_URL = "https://translate.mentality.rip/translate"
 
-# Discord setup
+# --- Discord Intents ---
 intents = discord.Intents.default()
+intents.message_content = True  # Very important to read messages
 intents.messages = True
-intents.message_content = True
 intents.guilds = True
 
 bot = commands.Bot(command_prefix="!", intents=intents)
 
+# --- Helper function ---
 def translate_text(text, target_lang):
     try:
         payload = {
@@ -42,21 +44,27 @@ def translate_text(text, target_lang):
         }
         response = requests.post(LIBRE_URL, data=payload, timeout=10)
         response.raise_for_status()
-        return response.json().get("translatedText")
+        translated = response.json().get("translatedText")
+        if not translated:
+            print(f"⚠ No translation returned for '{text}' -> '{target_lang}'")
+        return translated
     except Exception as e:
-        print(f"Translation error ({target_lang}): {e}")
+        print(f"Translation error for '{target_lang}': {e}")
         return None
 
+# --- Discord events ---
 @bot.event
 async def on_ready():
     print(f"✅ Logged in as {bot.user}")
+    print("Bot is ready to translate messages...")
 
 @bot.event
 async def on_message(message):
     if message.author.bot:
-        return
+        return  # Ignore other bots
 
     translations = []
+
     for lang in TARGET_LANGUAGES:
         translated = translate_text(message.content, lang)
         if translated and translated.lower() != message.content.lower():
@@ -72,18 +80,25 @@ async def on_message(message):
 
     await bot.process_commands(message)
 
+# --- Commands to add/remove languages dynamically ---
 @bot.command()
 async def addlang(ctx, code):
     if code not in TARGET_LANGUAGES:
         TARGET_LANGUAGES.append(code)
-        await ctx.send(f"✅ Added language {code}")
+        await ctx.send(f"✅ Added language `{code}`")
+    else:
+        await ctx.send(f"⚠ Language `{code}` already exists.")
 
 @bot.command()
 async def removelang(ctx, code):
     if code in TARGET_LANGUAGES:
         TARGET_LANGUAGES.remove(code)
-        await ctx.send(f"✅ Removed language {code}")
+        await ctx.send(f"✅ Removed language `{code}`")
+    else:
+        await ctx.send(f"⚠ Language `{code}` not found.")
 
+# --- Run bot ---
 bot.run(TOKEN)
+
 
 
