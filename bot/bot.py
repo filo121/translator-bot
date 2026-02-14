@@ -22,9 +22,12 @@ if not TOKEN:
     print("ERROR: DISCORD_TOKEN environment variable not found!")
     exit(1)
 
-# Public LibreTranslate APIs (primary and fallback)
-PRIMARY_LIBRE = "https://libretranslate.com/translate"
-FALLBACK_LIBRE = "https://translate.argosopentech.com/translate"
+# Multiple public LibreTranslate APIs (primary + fallbacks)
+LIBRE_ENDPOINTS = [
+    "https://libretranslate.com/translate",
+    "https://translate.argosopentech.com/translate",
+    "https://translate.api2.argosopentech.com/translate"
+]
 
 # --- Discord Intents ---
 intents = discord.Intents.default()
@@ -34,9 +37,9 @@ intents.guilds = True
 
 bot = commands.Bot(command_prefix="!", intents=intents)
 
-# --- Helper function with fallback ---
+# --- Helper function with multiple fallbacks ---
 def translate_text(text, target_lang):
-    for url in [PRIMARY_LIBRE, FALLBACK_LIBRE]:
+    for url in LIBRE_ENDPOINTS:
         try:
             payload = {
                 "q": text,
@@ -108,6 +111,4 @@ async def testapi(ctx):
 
 # --- Run bot ---
 bot.run(TOKEN)
-
-
 
