@@ -20,4 +20,3 @@ EXPOSE 8080
 EXPOSE 5000
 
 CMD ["sh", "-c", "java -jar /libretranslate/libretranslate.jar & python bot.py"]
-
