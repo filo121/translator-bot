@@ -2,33 +2,17 @@ import discord
 from discord.ext import commands
 import requests
 import os
-from flask import Flask
 from threading import Thread
-
-# --- Keep-alive server for Replit ---
-app = Flask("")
-
-@app.route("/")
-def home():
-    return "Bot is alive!"
-
-# Start Flask server in a thread
-Thread(target=lambda: app.run(host="0.0.0.0", port=8080)).start()
+import libretranslate_server  # starts local LibreTranslate server
 
 # --- Config ---
 TARGET_LANGUAGES = ["en", "fr"]
-TOKEN = os.getenv("DISCORD_TOKEN")  # Set in Replit environment
+TOKEN = os.getenv("DISCORD_TOKEN")
+LT_URL = "http://localhost:5000"
 
 if not TOKEN:
     print("ERROR: DISCORD_TOKEN environment variable not found!")
     exit(1)
-
-# List of public LibreTranslate endpoints (fallback order)
-LIBRE_ENDPOINTS = [
-    "https://libretranslate.com/translate",
-    "https://translate.argosopentech.com/translate",
-    "https://libretranslate.de/translate"
-]
 
 # --- Discord Intents ---
 intents = discord.Intents.default()
@@ -38,22 +22,16 @@ intents.guilds = True
 
 bot = commands.Bot(command_prefix="!", intents=intents)
 
-# --- Helper function with fallback ---
+# --- Translation helper ---
 def translate_text(text, target_lang):
-    for url in LIBRE_ENDPOINTS:
-        try:
-            payload = {
-                "q": text,
-                "source": "auto",
-                "target": target_lang,
-                "format": "text"
-            }
-            response = requests.post(url, data=payload, timeout=10)
-            response.raise_for_status()
-            return response.json().get("translatedText")
-        except Exception as e:
-            print(f"Translation error at {url} for '{target_lang}': {e}")
-    return None
+    try:
+        payload = {"q": text, "source": "auto", "target": target_lang}
+        response = requests.post(f"{LT_URL}/translate", data=payload, timeout=10)
+        response.raise_for_status()
+        return response.json().get("translatedText")
+    except Exception as e:
+        print(f"Translation error for '{target_lang}': {e}")
+        return None
 
 # --- Discord events ---
 @bot.event
@@ -67,7 +45,6 @@ async def on_message(message):
         return
 
     translations = []
-
     for lang in TARGET_LANGUAGES:
         translated = translate_text(message.content, lang)
         if translated and translated.lower() != message.content.lower():
@@ -83,7 +60,7 @@ async def on_message(message):
 
     await bot.process_commands(message)
 
-# --- Commands to add/remove languages dynamically ---
+# --- Commands to manage languages ---
 @bot.command()
 async def addlang(ctx, code):
     if code not in TARGET_LANGUAGES:
@@ -100,15 +77,16 @@ async def removelang(ctx, code):
     else:
         await ctx.send(f"⚠ Language `{code}` not found.")
 
-# --- TEMPORARY: Test translation API ---
 @bot.command()
 async def testapi(ctx):
     translated = translate_text("hello", "fr")
     if translated:
         await ctx.send(f"API Response: {translated}")
     else:
-        await ctx.send("Error: Could not reach any translation API.")
+        await ctx.send("Error: Could not reach local LibreTranslate service.")
 
 # --- Run bot ---
 bot.run(TOKEN)
+
+
 
